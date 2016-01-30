@@ -1,3 +1,6 @@
+/***********************
+gcc -o din_philo din_philo.c -pthread
+************************/
 #include "stdio.h"
 #include "stdlib.h"
 #include "unistd.h"
@@ -11,7 +14,6 @@ pthread_mutex_t mutex;
 
 void init();  // 初期化
 int GetRandom(int min,int max);
-void *func_thread0(void *p);
 void *func_thread(void *p);
 int take(int fn, int pn);
 void put(int fn, int pn);
@@ -22,7 +24,7 @@ int main(int argc, char const *argv[])
 {
   init();
   pthread_t pthread, pthread2, pthread3, pthread4, pthread5;
-  pthread_create(&pthread, NULL, &func_thread0, &philosopher[0]);
+  pthread_create(&pthread, NULL, &func_thread, &philosopher[0]);
   pthread_create(&pthread2, NULL, &func_thread, &philosopher[1]);
   pthread_create(&pthread3, NULL, &func_thread, &philosopher[2]);
   pthread_create(&pthread4, NULL, &func_thread, &philosopher[3]);
@@ -50,52 +52,34 @@ int GetRandom(int min,int max)
   return min + (int)(rand()*(max-min+1.0)/(1.0+RAND_MAX));
 }
 
-void *func_thread0(void *p){
+void *func_thread(void *p){
   int count = 0, num = *(int*)p;
   int wait_count = 0;
+  int u1, u2;
+  if (num == 0){
+    u1 = 0;
+    u2 = 4;
+  } else{
+    u1 = num - 1;
+    u2 = num;
+  }
   printf("start %d\n", num);
-  while(count < 3){
+  while(count < 5){
     pthread_mutex_lock(&mutex);
-    if (take(0, num) || Fork[0] == num){
-      if(take(N-1, num)){
+    if (take(u1, num) || Fork[u1] == num){
+      if(take(u2, num)){
         eat(num);
         count++;
-        put(N-1, num);
-        put(0, num);
+        put(u2, num);
+        put(u1, num);
       } else if(wait_count == 0){
         usleep(GetRandom(1,3000000));
         wait_count++;
       } else{
+        put(u1, num);
         wait_count = 0;
       }
     } else{
-      think(num);
-    }
-    pthread_mutex_unlock(&mutex);
-  }
-  printf("end %d\n", num);
-  return 0;
-}
-
-void *func_thread(void *p){
-  int count = 0, num = *(int*)p;
-  int wait_count = 0;
-  printf("start %d\n", num);
-  while(count < 5){
-    pthread_mutex_lock(&mutex);
-    if (take(num-1, num) || Fork[num-1] == num){
-      if(take(num, num)){
-        eat(num);
-        count++;
-        put(num, num);
-        put(num-1, num);
-      } else if(take(num-1, num) == 0 && wait_count == 0){
-        usleep(GetRandom(1,3000000));
-        wait_count++;
-      } else{
-        wait_count = 0;
-      }
-    } else {
       think(num);
     }
     pthread_mutex_unlock(&mutex);
